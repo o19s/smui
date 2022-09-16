@@ -23,7 +23,7 @@ class JWTJsonAuthenticatedAction(parser: BodyParsers.Default, appConfig: Configu
   private val JWT_ROLES_JSON_PATH = getValueFromConfigWithFallback("smui.JWTJsonAuthenticatedAction.authorization.json.path", "$.roles")
   private val JWT_AUTHORIZED_ROLES = getValueFromConfigWithFallback("smui.JWTJsonAuthenticatedAction.authorization.roles", "admin")
 
-  private lazy val authorizedRoles = JWT_AUTHORIZED_ROLES.replaceAll("\\s", "").split(",").toSeq
+  private val authorizedRoles = JWT_AUTHORIZED_ROLES.split(",").map(_.trim())
 
   private def getValueFromConfigWithFallback(key: String, default: String): String = {
     appConfig.getOptional[String](key) match {
@@ -57,10 +57,10 @@ class JWTJsonAuthenticatedAction(parser: BodyParsers.Default, appConfig: Configu
 
   private def isAuthorized(token: String): Boolean = {
     if (JWT_AUTHORIZATION_ACTIVE) {
-      val rolesInToken = Try(JsonPath.read[JSONArray](token, JWT_ROLES_JSON_PATH).toArray.toSeq)
+      val rolesReadFromToken = Try(JsonPath.read[JSONArray](token, JWT_ROLES_JSON_PATH).toArray.toSeq)
 
-      rolesInToken match {
-        case Success(roles) => roles.forall(authorizedRoles.contains)
+      rolesReadFromToken match {
+        case Success(rolesInToken) => rolesInToken.exists(authorizedRoles.contains)
         case _ => false
       }
     } else true
